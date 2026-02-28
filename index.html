@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Professional Stage Cricket Predictor</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: linear-gradient(rgba(0,0,0,0.65), rgba(0,0,0,0.65)),
+                url('image.png')
+                no-repeat center center fixed;
+    background-size: cover;
+    color: white;
+    text-align: center;
+    padding: 30px;
+    margin: 0;
+}
+
+h2 {
+    margin-bottom: 25px;
+}
+
+.container {
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    color: black;
+    width: 900px;
+    margin: auto;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0 0 30px rgba(0,0,0,0.6);
+}
+
+input, select {
+    padding: 6px;
+    margin: 4px;
+    border-radius: 5px;
+    border: 1px solid #ccc;
+}
+
+button {
+    padding: 8px 16px;
+    margin: 5px;
+    background: #12263a;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+button:hover {
+    background: #1f3c5c;
+}
+
+.bracket {
+    padding: 6px 14px;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 18px;
+}
+
+.green { background:#e6f9ec; color:green; border:2px solid green; }
+.red { background:#ffe6e6; color:red; border:2px solid red; }
+
+.correct { color: green; font-weight: bold; }
+.wrong { color: red; font-weight: bold; }
+
+hr { margin:20px 0; }
+</style>
+</head>
+
+<body>
+
+<h2>🏏 Professional Stage-Based Cricket Predictor</h2>
+
+<div class="container">
+
+<!-- ================== STAGE 1 ================== -->
+<h3>Stage 1 – Predict 6 Overs (Before Start)</h3>
+
+Line: <input id="line6">
+Pitch:
+<select id="pitch">
+<option value="flat">Flat</option>
+<option value="balanced">Balanced</option>
+<option value="slow">Slow</option>
+</select>
+
+Batting Strength:
+<select id="batStrength">
+<option value="strong">Strong</option>
+<option value="average">Average</option>
+<option value="weak">Weak</option>
+</select>
+
+Bowling Strength:
+<select id="bowlStrength">
+<option value="strong">Strong</option>
+<option value="average">Average</option>
+<option value="weak">Weak</option>
+</select>
+
+<button onclick="predict6()">Predict 6</button>
+<div id="pred6"></div>
+
+Actual 6 Over Score:
+<input id="actual6">
+<button onclick="verify(6)">Verify</button>
+<div id="verify6"></div>
+
+<hr>
+
+<!-- ================== STAGE 2 ================== -->
+<h3>Stage 2 – Predict 10 Overs (After 6 Overs)</h3>
+
+Line: <input id="line10">
+6 Over Score: <input id="score6">
+Wickets at 6: <input id="wkt6">
+Momentum:
+<select id="momentum6">
+<option value="fast">Fast</option>
+<option value="normal">Normal</option>
+<option value="slow">Slow</option>
+</select>
+
+<button onclick="predict10()">Predict 10</button>
+<div id="pred10"></div>
+
+Actual 10 Over Score:
+<input id="actual10">
+<button onclick="verify(10)">Verify</button>
+<div id="verify10"></div>
+
+<hr>
+
+<!-- ================== STAGE 3 ================== -->
+<h3>Stage 3 – Predict 15 Overs (After 10 Overs)</h3>
+
+Line: <input id="line15">
+10 Over Score: <input id="score10">
+Wickets at 10: <input id="wkt10">
+Set Batsman Present:
+<select id="setBat">
+<option value="yes">Yes</option>
+<option value="no">No</option>
+</select>
+
+<button onclick="predict15()">Predict 15</button>
+<div id="pred15"></div>
+
+Actual 15 Over Score:
+<input id="actual15">
+<button onclick="verify(15)">Verify</button>
+<div id="verify15"></div>
+
+<hr>
+
+<!-- ================== STAGE 4 ================== -->
+<h3>Stage 4 – Predict 20 Overs (After 15 Overs)</h3>
+
+Line: <input id="line20">
+15 Over Score: <input id="score15">
+Wickets at 15: <input id="wkt15">
+Death Bowling Strength:
+<select id="deathBowl">
+<option value="strong">Strong</option>
+<option value="average">Average</option>
+<option value="weak">Weak</option>
+</select>
+
+<button onclick="predict20()">Predict 20</button>
+<div id="pred20"></div>
+
+Actual 20 Over Score:
+<input id="actual20">
+<button onclick="verify(20)">Verify</button>
+<div id="verify20"></div>
+
+</div>
+
+<script>
+
+var storedPrediction = {};
+
+function calculateProjection(currentScore, oversCompleted, wicketsLost, phaseType) {
+
+    var currentRR = currentScore / oversCompleted;
+    var wicketsInHand = 10 - wicketsLost;
+
+    var stability = wicketsInHand >= 7 ? 1.08 :
+                    wicketsInHand >= 5 ? 1.02 :
+                    wicketsInHand >= 3 ? 0.95 : 0.85;
+
+    var collapseRisk = wicketsLost >= 6 ? 0.80 :
+                       wicketsLost >= 4 ? 0.90 :
+                       wicketsLost >= 2 ? 0.97 : 1;
+
+    var phaseMultiplier;
+
+    if(phaseType == "powerplay") phaseMultiplier = 1.05;
+    if(phaseType == "middle") phaseMultiplier = 0.95;
+    if(phaseType == "engine") phaseMultiplier = 1.00;
+    if(phaseType == "death") phaseMultiplier = 1.20;
+
+    var adjustedRR = currentRR * stability * collapseRisk * phaseMultiplier;
+
+    return adjustedRR;
+}
+
+function showPrediction(stage, projected, line) {
+
+    storedPrediction[stage] = projected > line ? ">" : "<";
+
+    if(storedPrediction[stage] == ">") {
+        document.getElementById("pred"+stage).innerHTML =
+        '<span class="bracket green">></span>';
+    } else {
+        document.getElementById("pred"+stage).innerHTML =
+        '<span class="bracket red"><</span>';
+    }
+}
+
+function predict6() {
+
+    var line = parseFloat(document.getElementById("line6").value);
+
+    var pitch = document.getElementById("pitch").value;
+    var bat = document.getElementById("batStrength").value;
+    var bowl = document.getElementById("bowlStrength").value;
+
+    var baseRR = 8.5;
+
+    if(pitch=="flat") baseRR += 1.5;
+    if(pitch=="slow") baseRR -= 1;
+
+    if(bat=="strong") baseRR += 1;
+    if(bat=="weak") baseRR -= 1;
+
+    if(bowl=="strong") baseRR -= 1;
+    if(bowl=="weak") baseRR += 1;
+
+    var projected = baseRR * 6;
+
+    showPrediction(6, projected, line);
+}
+
+function predict10() {
+
+    var score6 = parseFloat(document.getElementById("score6").value);
+    var wkt6 = parseInt(document.getElementById("wkt6").value);
+    var line = parseFloat(document.getElementById("line10").value);
+
+    var rr = calculateProjection(score6, 6, wkt6, "middle");
+
+    var projected = score6 + (rr * 4);
+
+    showPrediction(10, projected, line);
+}
+
+function predict15() {
+
+    var score10 = parseFloat(document.getElementById("score10").value);
+    var wkt10 = parseInt(document.getElementById("wkt10").value);
+    var line = parseFloat(document.getElementById("line15").value);
+
+    var rr = calculateProjection(score10, 10, wkt10, "engine");
+
+    var projected = score10 + (rr * 5);
+
+    showPrediction(15, projected, line);
+}
+
+function predict20() {
+
+    var score15 = parseFloat(document.getElementById("score15").value);
+    var wkt15 = parseInt(document.getElementById("wkt15").value);
+    var line = parseFloat(document.getElementById("line20").value);
+
+    var rr = calculateProjection(score15, 15, wkt15, "death");
+
+    var projected = score15 + (rr * 5);
+
+    showPrediction(20, projected, line);
+}
+
+function verify(stage) {
+
+    var actual = parseFloat(document.getElementById("actual"+stage).value);
+    var line = parseFloat(document.getElementById("line"+stage).value);
+
+    var real = actual > line ? ">" : "<";
+
+    if(real == storedPrediction[stage]) {
+        document.getElementById("verify"+stage).innerHTML =
+        '<span class="correct">✔ CORRECT</span>';
+    } else {
+        document.getElementById("verify"+stage).innerHTML =
+        '<span class="wrong">✘ WRONG</span>';
+    }
+}
+
+</script>
+</body>
+</html>
